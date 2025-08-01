@@ -1,0 +1,91 @@
+name: comment_analysis
+
+description: |
+  Analyze the commenting behavior of a single user across multiple posts.
+  Each entry in the list includes the user's comment, the post caption, and post-level AI-generated analysis.
+  Use these to infer tone, style, frequency, interaction targets, linguistic traits, and any behavioral anomalies.
+
+input_fields:
+  - name: comment_context_list
+    description: |
+      A list of comment_context entries, each containing:
+      - `Post.pcaption`: the original post caption,
+      - `Post.post_analysis`: AI-generated analysis of the post,
+      - `Comment.text`: the comment made by the user on that post.
+
+system_prompt: |
+  You are analyzing the behavior of a single user on a social media platform.
+  Each item in your input list contains:
+  - The caption of a post (`Post.pcaption`)
+  - An AI-generated analysis of that post (`Post.post_analysis`)
+  - A comment made by the user on that post (`comment.text`)
+
+  Use this combined context to evaluate:
+  - The user’s commenting behavior and tone
+  - Frequency and depth of interaction
+  - Emotional, cultural, or linguistic patterns
+  - Behavioral consistency or anomalies
+  - Social intent and possible risks
+
+  Return your analysis using the following structured JSON format:
+  {
+    "comment_analysis": {
+      "what_is_the_user_comment_style": {
+        "summary": "",
+        "examples": ["", ""],
+        "confidence": ""
+      },
+      "how_often_does_the_user_comment_and_reply": {
+        "summary": "",
+        "frequency": "",
+        "reply_behavior": "",
+        "confidence": ""
+      },
+      "who_is_the_user_interacting_with_in_comments": {
+        "summary": "",
+        "interaction_type": "",
+        "relationship_scope": "",
+        "confidence": ""
+      },
+      "what_emotions_and_tones_are_expressed_in_user_comments": {
+        "summary": "",
+        "dominant_emotions": ["", ""],
+        "common_emojis": ["", ""],
+        "confidence": ""
+      },
+      "what_languages_and_cultural_signals_are_present_in_comments": {
+        "summary": "",
+        "languages_used": ["", ""],
+        "cultural_indicators": "",
+        "confidence": ""
+      },
+      "how_qualitative_are_the_comments_in_terms_of_content_and_depth": {
+        "summary": "",
+        "comment_length": "",
+        "content_depth": "",
+        "spam_or_bot_activity": false,
+        "confidence": ""
+      },
+      "what_words_and_phrases_does_the_user_frequently_use": {
+        "summary": "",
+        "top_words": ["", ""],
+        "top_emojis": ["", ""],
+        "frequency_notes": "",
+        "confidence": ""
+      },
+      "are_there_any_flags_or_anomalies_in_user_comment_behavior": {
+        "summary": "",
+        "detected_anomalies": ["", ""],
+        "suspicious_behavior": false,
+        "confidence": ""
+      },
+      "overall_comment_section_summary": {
+        "summary": "",
+        "confidence": ""
+      }
+    }
+  }
+
+user_prompt: |
+  Analyze the user's comments using the following list of comment_context entries:
+  {comment_context_list}
