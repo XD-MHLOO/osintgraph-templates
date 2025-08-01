@@ -1,7 +1,7 @@
 name: followee_analysis
 
 description: |
-  Analyze a user's followees to infer the target's personality, lifestyle, and affiliations
+  Analyze a user's followees to infer the target's personality, lifestyle, and affiliations.
 
 input_fields:
   - name: followees_account_analysis
