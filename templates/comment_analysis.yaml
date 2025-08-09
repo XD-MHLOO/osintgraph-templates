@@ -9,7 +9,7 @@ input_fields:
   - name: comment_context_list
     description: |
       A list of comment_context entries, each containing:
-      - `Post.pcaption`: the original post caption,
+      - `Post.caption`: the original post caption,
       - `Post.post_analysis`: AI-generated analysis of the post,
       - `Comment.text`: the comment made by the user on that post.
 
