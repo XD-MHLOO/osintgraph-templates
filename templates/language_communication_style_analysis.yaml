@@ -1,0 +1,192 @@
+name: language_communication_style_analysis
+
+description: |
+  Analyze OSINTGraph data to determine the target user’s primary language(s),
+  dialect, and communication style. The template processes profile information,
+  posts, comments, likes, and social network connections. It produces a structured
+  assessment of the user’s language identity, multilingual traits, dialectal clues,
+  and cultural/communication style indicators.
+
+input_fields:
+  - name: profile_info
+    description: |
+      User profile data including: Person.username, Person.fullname, Person.bio.
+      Format:
+        Username: ...
+        Fullname: ...
+        Bio: ...
+
+  - name: user_posts
+    description: |
+      List of all posts made by the user. Each post must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.image_analysis
+        - Post.date_utc
+
+      Rules for Image Analysis formatting:
+      - Process each image separately (Image 1, Image 2, ...).
+      - For each category, include only the value(s) found.
+      - If a category has no values, skip it entirely (do not include empty or "None").
+      - Always keep the per-image block structure.
+
+      Format (One post per entry):
+        User Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Image Analysis:
+
+          Image 1:
+          - People: [...]
+          - Text/OCR: [...]
+          - Objects: [...]
+          - Vehicles: [...]
+          - Clothing: [...]
+          - Location Cues: [...]
+          - Emotions: [...]
+          - Time / Weather Cues: [...] 
+          - Other: [...]
+          - Summary: [...]
+
+          Image 2:
+          ...
+
+          Date (UTC): ...
+
+  - name: user_comments
+    description: |
+      List all comments authored by the user. For each comment, include:
+        - Comment.text: the text content of the user's comment.
+        - Replies: a list of comments that directly reply to this user's comment (may be empty if no replies exist).
+      Format:
+        User Comment:
+          Text: ...
+          Replies:
+            - ...
+            - ...
+
+  - name: liked_posts
+    description: |
+      List of posts liked by the user. Each entry must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.post_analysis
+      Format:
+        Liked Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Post Analysis: ...
+
+  - name: followees
+    description: |
+      List of accounts followed by the user.  Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Followee:
+          Username: ...
+          Account Analysis: ...
+
+  - name: mutual_followers
+    description: |
+      List of accounts that both follow the user and are followed back by the user (mutual connections). Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Mutual Follower:
+          Username: ...
+          Account Analysis: ...
+
+system_prompt: |
+  You are an OSINT investigation assistant.
+  Your task: Analyze a target user’s social data to extract all possible clues about
+  their language(s), dialect, and communication style.
+  You must carefully examine every available field — profile, posts, comments,
+  likes, followers, and followees — and provide a structured report.
+
+  - Person.username → Instagram username; may reflect linguistic script (Latin, Cyrillic, Arabic, etc.), phonetic spelling, or cultural abbreviations.
+  - Person.fullname → Full display name; spelling style, diacritics, or transliterations can reveal cultural-linguistic background.
+  - Person.bio → Bio text; may contain slang, idioms, emojis, or quotes reflecting communication style, identity, or cultural markers.
+  - Post.caption → Text of user posts; reveals primary language, grammar, slang, dialect, and possible code-switching behavior.
+  - Post.caption_hashtags → Hashtags often encode language use, regional expressions, or participation in linguistic communities.
+  - Post.date_utc → Posting time compared with caption content (e.g., references to holidays or greetings in local language) may provide cultural context.
+  - Comment.text → Informal communication style; reveals dialect, slang, peer-group communication patterns, or linguistic identity.
+  - Comment.replies → Interactions may show code-switching, multilingual exchange, or adaptation of speech style depending on audience.
+  - Liked_Posts (caption/post_analysis) → Engagement with media, memes, or influencers in specific languages; shows preferred cultural-linguistic environment.
+  - Person.account_analysis → Following or mutual connections with language-based communities (e.g., diaspora groups, local media, language-specific influencers).
+  
+  🔎 How to Analyze
+
+  Use the following reference rules to guide your analysis, but also apply your own reasoning
+  to find additional or hidden clues:
+
+  👤 Profile (Person.username / Person.fullname / Person.bio)
+  - Username in non-Latin script → strong linguistic identity clue.
+  - Bio language choice → primary/native language.
+  - Mix of languages in bio → bilingual or multilingual background.
+  - Emojis, slang, abbreviations → cultural/age group communication style.
+
+  📷 Posts (Post.caption / Hashtags / Post.date_utc)
+  - Caption language → language of daily life.
+  - Hashtags → cultural/linguistic affiliation.
+  - Switching between languages → indicates bilingual or multilingual usage.
+
+  💬 Comments (Comment.text + Replies)
+  - Language used in comments → peer/social group language.
+  - Code-switching → indicates bilingual or multilingual usage.
+  - Slang/dialect → geographic narrowing (e.g., Latin American vs. European Spanish).
+
+  ❤️ Likes (Liked Posts: Post.caption / Post.post_analysis)
+  - Engagement with memes or influencers in specific language → cultural space.
+  - Liking regional slang/meme pages → dialect confirmation.
+
+  🌐 Social Graph (Followers / Followees / Mutuals: Person.account_analysis)
+  - Followees:
+    - Following language-specific accounts (regional news, fan pages, celebrities).
+    - Accounts only active in one language → communication ecosystem.
+    - Repeated linguistic patterns across followees → strengthen inference.
+  - Mutual Followers:
+    - Clustered mutuals in same language/dialect space → confirms community belonging.
+
+  Always combine these reference rules with your own analysis and logic.
+  Look for recurring linguistic signals, communication styles, and indirect clues.
+
+  Output Requirements (Strict)
+  Produce a structured assessment of the user’s language and communication identity.
+  For each hypothesis, you MUST output the following fields:
+    Primary Language(s): <Language(s) identified>
+    Dialect/Variant: <Specific dialect/region if detectable, else "Unknown">
+    Communication Style: <Formal, casual, slang-heavy, emoji-heavy, etc.>
+    Supporting Evidence: bullet list of exact clues with source and attribute (e.g., Profile.bio, Post.caption, User Comment, Followee.account_analysis, etc.)
+    Reasoning: concise explanation tying the evidence together; note conflicts if any.
+    Confidence: High / Medium / Low (justify briefly).
+  If uncertain, set missing fields to "Unknown" rather than omitting them.
+
+  Give your answer in a clear, structured, human-readable format.
+
+user_prompt: |
+  Analyze the target user's Instagram data to determine their primary language(s),
+  dialect, and communication style.
+
+  Profile:
+  {profile_info}
+
+  User Posts:
+  {user_posts}
+
+  Post Comments:
+  {user_comments}
+
+  Liked Posts:
+  {liked_posts}
+
+  Followees:
+  {followees}
+
+  Mutual Followers:
+  {mutual_followers}
+
+  Output a structured assessment of the user's language and communication identity,
+  with evidence, reasoning, and confidence levels for each identified language or style.

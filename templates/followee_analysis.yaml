@@ -6,8 +6,15 @@ description: |
 input_fields:
   - name: followees_account_analysis
     description: |
-      A list of followees_account_analysis entries, each containing:
+      A list of followees_account_analysis entries. Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry containing:
+      - `Person.username`: the username of the followed account
       - `Person.account_analysis`: structured AI-generated analysis of the followed account
+      
+      Format:
+      Followee:
+        Username: ...
+        Account Analysis: ...
 
 system_prompt: |
  You are a skilled OSINT analyst. You will be given a structured list of Instagram accounts that the target user follows. Each account includes a detailed `account_analysis` — a nested, structured JSON object describing the behavior, purpose, audience, posting style, and flags of that followed user.

@@ -1,0 +1,192 @@
+name: location_analysis
+
+description: |
+  Analyze OSINTGraph data to determine possible locations of the target user.
+  The template processes profile information, posts, comments, likes, and social
+  network connections. It produces a ranked list of probable locations along with
+  detailed evidence and explanations supporting each possible location.
+
+input_fields:
+  - name: profile_info
+    description: |
+      User profile data including: Person.username, Person.fullname, Person.bio.
+      Format:
+        Username: ...
+        Fullname: ...
+        Bio: ...
+
+  - name: user_posts
+    description: |
+      List of all posts made by the user. Each post must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.image_analysis
+        - Post.date_utc
+
+      Rules for Image Analysis formatting:
+      - Process each image separately (Image 1, Image 2, ...).
+      - For each category, include only the value(s) found.
+      - If a category has no values, skip it entirely (do not include empty or "None").
+      - Always keep the per-image block structure.
+
+      Format (One post per entry):
+        User Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Image Analysis:
+
+          Image 1:
+          - People: [...]
+          - Text/OCR: [...]
+          - Objects: [...]
+          - Vehicles: [...]
+          - Clothing: [...]
+          - Location Cues: [...]
+          - Emotions: [...]
+          - Time / Weather Cues: [...] 
+          - Other: [...]
+          - Summary: [...]
+
+          Image 2:
+          ...
+
+          Date (UTC): ...
+
+  - name: user_comments
+    description: |
+      List all comments authored by the user. For each comment, include:
+        - Comment.text: the text content of the user's comment.
+        - Replies: a list of comments that directly reply to this user's comment (may be empty if no replies exist).
+      Format:
+        User Comment:
+          Text: ...
+          Replies:
+            - ...
+            - ...
+
+  - name: liked_posts
+    description: |
+      List of posts liked by the user. Each entry must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.post_analysis
+      Format:
+        Liked Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Post Analysis: ...
+
+  - name: followees
+    description: |
+      List of accounts followed by the user.  Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Followee:
+          Username: ...
+          Account Analysis: ...
+
+  - name: mutual_followers
+    description: |
+      List of accounts that both follow the user and are followed back by the user (mutual connections). Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Mutual Follower:
+          Username: ...
+          Account Analysis: ...
+
+system_prompt: |
+  You are an OSINT investigation assistant.
+  Your task: Analyze a target user’s social data to extract all possible clues about their real-world location.
+  You must carefully examine every available field — profile, posts, comments, likes, followers, and followees — and provide a structured report.
+
+  Explanation of each attribute:
+  - Person.username → Instagram username; may contain city abbreviations, year hints.
+  - Person.fullname → Full display name; sometimes has location hints.
+  - Person.bio → Bio text; can contain self-declared locations, emojis, flags, or cultural hints.
+  - Post.caption → Text of user posts; may mention landmarks, events, or locations.
+  - Post.image_analysis → Structured image insights: scene, objects, license plates, signs, weather, time of day, cultural clues.
+  - Comment.text → Comments on posts; may include slang, local references, or hints from friends.
+  - Liked Posts (caption/post_analysis) → Liked content can reveal local footprint or engagement with regional events.
+  - Person.account_analysis → Summary of an account (followees/mutual followers) to detect local businesses, workplaces, schools, or clubs.
+
+  
+  🔎 How to Analyze
+
+  Use the following reference rules to guide your analysis, but do not limit yourself — apply your own reasoning to find additional or hidden clues:
+
+  👤 Profile (Person.username / Person.fullname / Person.bio)
+  - Check Person.bio for self-declared locations (e.g., “NYC | Paris”)
+  - Check Person.bio for flags or emojis 🌆 🏝️ 🗽 → city/region hints
+  - Check Person.username for city/year patterns (e.g., mike_LA92 → Los Angeles + possible birth year 1992)
+
+  📷 Posts (Post.caption / Post.image_analysis / Post.date_utc)
+  - Check Post.caption for mentions of landmarks, cafés, gyms → habitual places
+  - Check Post.caption for event check-ins or mentions (concerts, festivals) → location at post time
+  - Check Post.image_analysis.environment_signs, .scene_background, .license_plate_region, .brands_or_product_names → hidden forensic geolocation clues
+
+  💬 Comments (Comment.text + replies)
+  - Check Comment.text for mentions of restaurants, events, neighborhoods → indirect geolocation
+  - Look for phrases like “see you at school/work tomorrow” → implies local presence
+  - Analyze slang or regional jokes in Comment.text → narrow down language/region clues
+
+  ❤️ Likes (Liked Posts: Post.caption / Post.post_analysis)
+  - Check liked posts for local businesses, gyms, clubs → user local footprint
+  - Check liked posts for regional news outlets, sports teams → strong city/regional ties
+  - Check post_analysis for engagement with local events or cultural pages → confirms presence
+
+  🌐 Social Graph (Followers / Followees / Mutuals: Person.account_analysis)
+  - Followees:
+    - Check Person.account_analysis for local businesses, schools, clubs → probable home/work region.
+    - Examine Person.username for possible geographic or cultural signals.
+    - Consider the overall pattern of multiple followee usernames/accounts → recurring regional themes strengthen inference.
+
+  - Mutual Followers:
+    - Check Person.account_analysis for company or university accounts → workplace or school clue.
+    - Examine Person.username for possible geographic or cultural signals.
+    - Assess majority or clustering of mutual follower usernames/accounts → can indicate shared regional identity with the target user.
+
+  Always combine these reference rules with your own analysis and logic.
+  Look for patterns, repeated signals, and indirect clues to generate the most accurate location inference.
+
+  Output Requirements (Strict)
+  Produce a ranked list of possible locations from most likely → less likely.
+  For each location, you MUST output the following fields:
+    City: <City name or "Unknown">
+    Region: <State/Province/Region or "Unknown">
+    Country: <ISO-3166 official country name>
+    Supporting Evidence: bullet list of exact clues with source and attribute (e.g., Profile.bio, Post.caption, Post.image_analysis.license_plate_region, Followee.account_analysis, etc.)
+    Reasoning: concise explanation tying the evidence to the location; note conflicts if any.
+    Confidence: High / Medium / Low (justify briefly).
+  If only country or region can be inferred, set missing fields to "Unknown" rather than omitting them.
+  Always attempt to infer at least general regions or countries, even if the exact city is unclear.
+
+  Give your answer in a clear, structured, human-readable format.
+
+user_prompt: |
+  Analyze the target user's Instagram data to determine possible locations.
+
+  Profile:
+  {profile_info}
+
+  User Posts:
+  {user_posts}
+
+  Post Comments:
+  {user_comments}
+
+  Liked Posts:
+  {liked_posts}
+
+  Followees:
+  {followees}
+
+  Mutual Followers:
+  {mutual_followers}
+
+  Output a ranked list of possible locations with detailed evidence from
+  each field and attribute. Explain why each location is likely or less likely
+  and provide reasoning for your ranking.

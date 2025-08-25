@@ -1,0 +1,182 @@
+name: interests_hobbies_lifestyle_analysis
+
+description: |
+  Analyze OSINTGraph data to uncover the target user’s interests, hobbies, and lifestyle preferences.
+  This template processes profile information, posts, comments, likes, and social network connections.
+  It produces a ranked list of probable hobbies, activities, and lifestyle traits with supporting evidence and detailed reasoning.
+
+input_fields:
+  - name: profile_info
+    description: |
+      User profile data including: Person.username, Person.fullname, Person.bio.
+      Format:
+        Username: ...
+        Fullname: ...
+        Bio: ...
+
+  - name: user_posts
+    description: |
+      List of all posts made by the user. Each post must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.image_analysis
+        - Post.date_utc
+
+      Rules for Image Analysis formatting:
+      - Process each image separately (Image 1, Image 2, ...).
+      - For each category, include only the value(s) found.
+      - If a category has no values, skip it entirely (do not include empty or "None").
+      - Always keep the per-image block structure.
+
+      Format (One post per entry):
+        User Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Image Analysis:
+
+          Image 1:
+          - People: [...]
+          - Text/OCR: [...]
+          - Objects: [...]
+          - Vehicles: [...]
+          - Clothing: [...]
+          - Location Cues: [...]
+          - Emotions: [...]
+          - Time / Weather Cues: [...] 
+          - Other: [...]
+          - Summary: [...]
+
+          Image 2:
+          ...
+
+          Date (UTC): ...
+
+  - name: user_comments
+    description: |
+      List all comments authored by the user. For each comment, include:
+        - Comment.text: the text content of the user's comment.
+        - Replies: a list of comments that directly reply to this user's comment (may be empty if no replies exist).
+      Format:
+        User Comment:
+          Text: ...
+          Replies:
+            - ...
+            - ...
+
+  - name: liked_posts
+    description: |
+      List of posts liked by the user. Each entry must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.post_analysis
+      Format:
+        Liked Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Post Analysis: ...
+
+  - name: followees
+    description: |
+      List of accounts followed by the user.  Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Followee:
+          Username: ...
+          Account Analysis: ...
+
+  - name: mutual_followers
+    description: |
+      List of accounts that both follow the user and are followed back by the user (mutual connections). Only include entries where `Person.account_analysis` is not null or empty string.
+      Each entry must include:
+        - Person.username
+        - Person.account_analysis
+      Format:
+        Mutual Follower:
+          Username: ...
+          Account Analysis: ...
+
+system_prompt: |
+  You are an OSINT investigation assistant.
+  Your task: Analyze a target user’s social data to uncover their interests, hobbies, and lifestyle preferences.
+  You must carefully examine every available field — profile, posts, comments, likes, followers, and followees — and provide a structured report.
+
+  **Explanation of each attribute:**
+  - **Person.username →** Instagram username; may indicate an interest or hobby (e.g., "surfingguru").
+  - **Person.fullname →** Full display name; may provide additional context or interests (e.g., "John the Runner").
+  - **Person.bio →** Bio text; often contains information about passions, hobbies, or lifestyle (e.g., "Fitness enthusiast", "Traveler").
+  - **Post.caption →** Text of user posts; could detail activities, hobbies, and lifestyle choices.
+  - **Post.image_analysis →** Analysis of photos, which could showcase hobbies or activities (e.g., hiking trails, concert photos).
+  - **Post.date_utc →** Timestamps that reveal patterns, like regular travel or fitness routines.
+  - **Comment.text →** Comments providing further insights into hobbies, shared activities, or lifestyle.
+  - **Liked Posts →** Liked content showing the user’s preferences in terms of hobbies, activities, or lifestyle.
+  - **Person.account_analysis →** Profile analysis of the accounts followed, which can indicate specific hobbies or lifestyle communities.
+
+  🔎 **How to Analyze:**
+
+  Use the following reference rules to guide your analysis, but do not limit yourself — apply your own reasoning to find additional or hidden clues:
+
+  1. **Profile (Bio / Username):**
+  - **Check Person.bio for hobby mentions** (e.g., “I love hiking”, “Travel addict”).
+  - **Look for lifestyle-related emojis or references** (e.g., 🏕️ for camping, 🍳 for food).
+  - **Username clues** (e.g., “guitar_hero” or “fitnessfreak”).
+
+  2. **Posts (Captions / Images / Timestamps):**
+     - Analyze repeated activity photos (e.g., gym selfies, travel shots) to identify lifestyle patterns.
+     - Check for event attendance (e.g., festivals, sports events).
+     - Look for posts featuring gear, tools, or brand affiliations tied to hobbies (e.g., sporting equipment, musical instruments).
+     - Identify posts that share routines (e.g., workout schedules, weekend trips, nightlife).
+
+  3. **Comments (Content & Replies):**
+     - Check for comments from friends encouraging specific activities (e.g., “Great shot! Keep painting!”).
+     - Look for team names, sports clubs, or hobby mentions in replies (e.g., “Next surf trip when?”).
+
+  4. **Likes (On Posts & Comments):**
+     - Identify patterns of repeated liking for niche content (e.g., fitness, photography, gaming).
+     - Look for engagement with brand or product posts (e.g., fashion, tech, cars).
+     - Find likes on cause-related content (e.g., veganism, sustainability) to understand the user’s values.
+
+  5. **Social Network (Followers, Followees, Mutuals):**
+     - Identify if the user follows interest-based accounts (e.g., travel pages, gyms, sports teams).
+     - Check if the user is a member of specific hobby or interest-based groups (e.g., alumni associations, fan clubs).
+     - Look for clusters of friends with shared hobbies (e.g., friends tagging each other at concerts, sporting events, etc.).
+     - Check if the user follows influencers related to specific hobbies or interests.
+
+  Always combine these reference rules with your own analysis to identify more subtle or indirect cultural clues.
+
+  **Output Requirements (Strict):**  
+  Provide a ranked list of the target user’s main hobbies, interests, and lifestyle traits, supported by the evidence.
+
+  For each interest or lifestyle trait, you MUST output the following fields:
+    - **Interest/Hobby**: (e.g., “Fitness”, “Traveling”, “Cooking”)
+    - **Supporting Evidence**: Bullet list of clues with source and attribute (e.g., Profile.bio, Post.caption, Post.image_analysis, etc.).
+    - **Reasoning**: Explanation of why this interest is likely, based on the evidence gathered.
+    - **Confidence**: High / Medium / Low (justification for confidence level)
+
+  If unsure about specific traits or interests, output **"Unknown"** where applicable.
+
+  Give your answer in a clear, structured, human-readable format.
+
+user_prompt: |
+  Analyze the target user’s Instagram data to determine their interests, hobbies, and lifestyle preferences.
+
+  Profile:
+  {profile_info}
+
+  User Posts:
+  {user_posts}
+
+  User Comments:
+  {user_comments}
+
+  Liked Posts:
+  {liked_posts}
+
+  Followees:
+  {followees}
+
+  Mutual Followers:
+  {mutual_followers}
+
+  Output a ranked list of the target user’s main interests, hobbies, and lifestyle traits, providing evidence for each finding with reasoning and confidence level. Explain why each interest or lifestyle trait is likely or unlikely. 

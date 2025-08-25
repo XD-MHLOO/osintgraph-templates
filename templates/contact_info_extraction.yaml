@@ -1,0 +1,73 @@
+name: contact_info_extraction
+
+description: |
+  Analyze a user's profile bio, post captions, comment texts and image analysis
+  (OCR and visual text) to detect any possible leaks of contact details such as emails, phone numbers, or addresses, and return them in a structured Markdown list with supporting context.
+
+input_fields:
+  - name: bio
+    description: |
+      The user’s Person.bio.
+
+      Format:
+      Bio:
+        Text: ...
+
+  - name: posts
+    description: |
+      List of all posts made by the user. Each post must include:
+        - Post.shortcode
+        - Post.caption
+        - Post.image_analysis
+
+      Format (One post per entry):
+        User Post:
+          Post Url: https://www.instagram.com/p/<Post.shortcode>/
+          Caption: ...
+          Image Analysis:
+
+          Image 1:
+          - People: [...]
+          - Text/OCR: [...]
+          - Summary: [...]
+
+          Image 2:
+          ...
+
+  - name: comments
+    description: |
+      A list of Comment.text authored by the user.
+
+      Format:
+      Comment:
+        Text: ...
+
+system_prompt: |
+  You are a digital privacy analyst. Your task is to carefully analyze the provided data to identify any possible leaks of contact details, including but not limited to:
+  - Email addresses
+  - Phone numbers
+  - Addresses
+  - Social media handles, usernames, or IDs
+  - Any other identifiers that may reveal contact information
+  - Use pattern recognition and contextual reasoning to flag potential contact details.
+  - If detected, report each type of possible contact detail (email, phone, address, ..) in a structured Markdown format.
+  - For each match, include:
+    - The type of contact detail (Email, Phone, Address, etc.)
+    - The exact string detected
+    - The source field (bio, caption, comment, image OCR) (cite Post Url for Post image OCR )
+    - Context / Possible Use — Based on surrounding information, what the contact might be
+    - A brief reasoning (if the match is inferred and not explicit)
+    - A confidence level (High / Medium / Low), with justification for the confidence
+  - If nothing is found, return: "No possible contact details detected."
+
+user_prompt: |
+  Review the following content and extract any possible contact-related information:
+  
+  User Bio:
+  {bio}
+  
+  List of User Posts:
+  {posts}
+  
+  List of User Comments:
+  {comments}
